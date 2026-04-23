@@ -359,6 +359,7 @@ impl Station {
         focused_block: FocusedBlock,
         device: &Device,
         config: Arc<Config>,
+        captive_networks: &std::collections::HashMap<String, String>,
     ) {
         let (known_networks_block, new_networks_block, device_block, help_block) = {
             let chunks = Layout::default()
@@ -498,40 +499,33 @@ impl Station {
                     }
                 });
 
-                if let Some(connected_net) = &self.connected_network {
-                    if connected_net.name == net.name {
-                        let row = vec![
-                            Line::from("󰖩 ").centered(),
-                            Line::from(net.name.clone()).centered(),
-                            Line::from(net.network_type.to_string()).centered(),
-                            Line::from(if net.is_hidden { "Yes" } else { "No" }).centered(),
-                            Line::from(if net.is_autoconnect { "Yes" } else { "No" }).centered(),
-                            Line::from(signal).centered(),
-                        ];
+                let is_captive = captive_networks.contains_key(&net.name);
 
-                        Row::new(row)
-                    } else {
-                        let row = vec![
-                            Line::from(""),
-                            Line::from(net.name.clone()).centered(),
-                            Line::from(net.network_type.to_string()).centered(),
-                            Line::from(if net.is_hidden { "Yes" } else { "No" }).centered(),
-                            Line::from(if net.is_autoconnect { "Yes" } else { "No" }).centered(),
-                            Line::from(signal).centered(),
-                        ];
-
-                        Row::new(row)
-                    }
-                } else {
-                    let row = vec![
-                        Line::from("").centered(),
+                let row = if let Some(connected_net) = &self.connected_network
+                    && connected_net.name == net.name
+                {
+                    vec![
+                        Line::from(if is_captive { "󰖩!" } else { "󰖩 " }).centered(),
                         Line::from(net.name.clone()).centered(),
                         Line::from(net.network_type.to_string()).centered(),
                         Line::from(if net.is_hidden { "Yes" } else { "No" }).centered(),
                         Line::from(if net.is_autoconnect { "Yes" } else { "No" }).centered(),
                         Line::from(signal).centered(),
-                    ];
+                    ]
+                } else {
+                    vec![
+                        Line::from(if is_captive { "! " } else { "" }).centered(),
+                        Line::from(net.name.clone()).centered(),
+                        Line::from(net.network_type.to_string()).centered(),
+                        Line::from(if net.is_hidden { "Yes" } else { "No" }).centered(),
+                        Line::from(if net.is_autoconnect { "Yes" } else { "No" }).centered(),
+                        Line::from(signal).centered(),
+                    ]
+                };
 
+                if is_captive {
+                    Row::new(row).style(Style::default().fg(Color::Yellow))
+                } else {
                     Row::new(row)
                 }
             })
@@ -935,6 +929,13 @@ impl Station {
                     Span::from(" Discard"),
                 ])]
             }
+            FocusedBlock::CaptivePortalPrompt => vec![Line::from(vec![
+                Span::from("↵ ").bold(),
+                Span::from(" Open browser"),
+                Span::from(" | "),
+                Span::from("󱊷 ").bold(),
+                Span::from(" Dismiss & disconnect"),
+            ])],
             _ => vec![Line::from(vec![
                 Span::from("󱊷 ").bold(),
                 Span::from(" Discard"),

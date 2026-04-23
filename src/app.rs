@@ -25,6 +25,7 @@ pub enum FocusedBlock {
     RequestUsernameAndPassword,
     ShareNetwork,
     ConnectHiddenNetwork,
+    CaptivePortalPrompt,
 }
 
 pub struct App {
@@ -39,6 +40,9 @@ pub struct App {
     pub config: Arc<Config>,
     pub auth: Auth,
     pub network_name_requiring_auth: Option<String>,
+    pub captive_portal_url: Option<String>,
+    pub captive_networks: std::collections::HashMap<String, String>,
+    pub captive_prompt_active: bool,
 }
 
 impl App {
@@ -96,6 +100,9 @@ Error: {}",
             config,
             auth: Auth::default(),
             network_name_requiring_auth: None,
+            captive_portal_url: None,
+            captive_networks: std::collections::HashMap::new(),
+            captive_prompt_active: false,
         })
     }
 

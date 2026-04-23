@@ -157,6 +157,69 @@ pub async fn handle_key_events(
     sender: UnboundedSender<Event>,
     config: Arc<Config>,
 ) -> Result<()> {
+    if app.focused_block == FocusedBlock::CaptivePortalPrompt {
+        match key_event.code {
+            KeyCode::Enter | KeyCode::Char('y') => {
+                if let Some(url) = app.captive_portal_url.take() {
+                    if let Ok(user) = std::env::var("SUDO_USER") {
+                        let _ = std::process::Command::new("sudo")
+                            .args(["-E", "-u", &user, "xdg-open", &url])
+                            .spawn();
+                    } else {
+                        let _ = std::process::Command::new("xdg-open").arg(&url).spawn();
+                    }
+
+                    let network_name = app
+                        .device
+                        .station
+                        .as_ref()
+                        .and_then(|s| s.connected_network.as_ref())
+                        .map(|n| n.name.clone())
+                        .unwrap_or_default();
+
+                    let poll_sender = sender.clone();
+                    tokio::spawn(async move {
+                        for check in 1u32..=20 {
+                            tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+                            let Ok(out) = tokio::process::Command::new("curl")
+                                .args([
+                                    "-4", "-s", "-o", "/dev/null", "-w", "%{http_code}",
+                                    "--max-time", "5",
+                                    "http://connectivitycheck.gstatic.com/generate_204",
+                                ])
+                                .output()
+                                .await
+                            else {
+                                continue;
+                            };
+                            let code = String::from_utf8_lossy(&out.stdout);
+                            log::debug!(
+                                "captive poll [{network_name}] check {check}/20: {}",
+                                code.trim()
+                            );
+                            if code.trim() == "204" {
+                                let _ = poll_sender
+                                    .send(Event::ConnectivityRestored(network_name));
+                                break;
+                            }
+                        }
+                    });
+                }
+                app.focused_block = FocusedBlock::KnownNetworks;
+            }
+            KeyCode::Esc | KeyCode::Char('n') => {
+                app.captive_portal_url = None;
+                app.captive_prompt_active = false;
+                app.focused_block = FocusedBlock::KnownNetworks;
+                if let Some(station) = &app.device.station {
+                    let _ = station.disconnect(sender.clone()).await;
+                }
+            }
+            _ => {}
+        }
+        return Ok(());
+    }
+
     if app.reset.enable {
         match key_event.code {
             KeyCode::Char('q') => {

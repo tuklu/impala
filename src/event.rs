@@ -24,6 +24,8 @@ pub enum Event {
     AuthReqUsernameAndPassword(String),
     UsernameAndPasswordSubmit,
     ConnectToHiddenNetwork(String),
+    CaptivePortalDetected(String),
+    ConnectivityRestored(String),
 }
 
 #[allow(dead_code)]

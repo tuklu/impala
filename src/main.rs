@@ -70,6 +70,35 @@ async fn main() -> Result<()> {
                     exit_error_message = Some(e);
                     break;
                 }
+
+                let is_connected = app
+                    .device
+                    .station
+                    .as_ref()
+                    .and_then(|s| s.connected_network.as_ref())
+                    .is_some();
+                if !is_connected {
+                    app.captive_prompt_active = false;
+                }
+
+                // re-show captive prompt if we reconnect to a known captive network
+                if !app.captive_prompt_active
+                    && app.focused_block != impala::app::FocusedBlock::CaptivePortalPrompt
+                {
+                    if let Some(name) = app
+                        .device
+                        .station
+                        .as_ref()
+                        .and_then(|s| s.connected_network.as_ref())
+                        .map(|n| n.name.clone())
+                    {
+                        if let Some(url) = app.captive_networks.get(&name).cloned() {
+                            app.captive_portal_url = Some(url);
+                            app.focused_block = impala::app::FocusedBlock::CaptivePortalPrompt;
+                            app.captive_prompt_active = true;
+                        }
+                    }
+                }
             }
 
             Event::Key(key_event) => {
@@ -199,6 +228,31 @@ You do not have the required permissions. Ensure you are part of the appropriate
                     app.focused_block = impala::app::FocusedBlock::NewNetworks;
                     station.connct_hidden_network = None;
                 }
+            }
+
+            Event::CaptivePortalDetected(url) => {
+                if let Some(name) = app
+                    .device
+                    .station
+                    .as_ref()
+                    .and_then(|s| s.connected_network.as_ref())
+                    .map(|n| n.name.clone())
+                {
+                    app.captive_networks.insert(name, url.clone());
+                }
+                app.captive_portal_url = Some(url);
+                app.focused_block = impala::app::FocusedBlock::CaptivePortalPrompt;
+                app.captive_prompt_active = true;
+            }
+
+            Event::ConnectivityRestored(name) => {
+                app.captive_networks.remove(&name);
+                app.captive_prompt_active = false;
+                notification::Notification::send(
+                    format!("Connectivity restored for {name}"),
+                    notification::NotificationLevel::Info,
+                    &tui.events.sender.clone(),
+                )?;
             }
 
             _ => {}
