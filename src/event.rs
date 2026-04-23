@@ -26,6 +26,7 @@ pub enum Event {
     ConnectToHiddenNetwork(String),
     CaptivePortalDetected(String),
     ConnectivityRestored(String),
+    CredentialFailed(String),
 }
 
 #[allow(dead_code)]

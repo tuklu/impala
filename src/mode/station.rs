@@ -936,6 +936,13 @@ impl Station {
                 Span::from("󱊷 ").bold(),
                 Span::from(" Dismiss & disconnect"),
             ])],
+            FocusedBlock::CredentialUpdatePrompt => vec![Line::from(vec![
+                Span::from("↵ ").bold(),
+                Span::from(" Update password"),
+                Span::from(" | "),
+                Span::from("󱊷 ").bold(),
+                Span::from(" Dismiss"),
+            ])],
             _ => vec![Line::from(vec![
                 Span::from("󱊷 ").bold(),
                 Span::from(" Discard"),

@@ -6,7 +6,8 @@ use iwdrs::{modes::Mode, session::Session};
 
 use crate::{
     adapter::Adapter, agent::AuthAgent, config::Config, device::Device, event::Event,
-    mode::station::auth::Auth, notification::Notification, reset::Reset,
+    mode::station::auth::Auth, mode::station::network::Network, notification::Notification,
+    reset::Reset,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -26,6 +27,7 @@ pub enum FocusedBlock {
     ShareNetwork,
     ConnectHiddenNetwork,
     CaptivePortalPrompt,
+    CredentialUpdatePrompt,
 }
 
 pub struct App {
@@ -43,6 +45,7 @@ pub struct App {
     pub captive_portal_url: Option<String>,
     pub captive_networks: std::collections::HashMap<String, String>,
     pub captive_prompt_active: bool,
+    pub credential_update_network: Option<Network>,
 }
 
 impl App {
@@ -103,6 +106,7 @@ Error: {}",
             captive_portal_url: None,
             captive_networks: std::collections::HashMap::new(),
             captive_prompt_active: false,
+            credential_update_network: None,
         })
     }
 

@@ -255,6 +255,17 @@ You do not have the required permissions. Ensure you are part of the appropriate
                 )?;
             }
 
+            Event::CredentialFailed(name) => {
+                if let Some(station) = &app.device.station {
+                    if let Some((net, _)) =
+                        station.known_networks.iter().find(|(n, _)| n.name == name)
+                    {
+                        app.credential_update_network = Some(net.clone());
+                        app.focused_block = impala::app::FocusedBlock::CredentialUpdatePrompt;
+                    }
+                }
+            }
+
             _ => {}
         }
     }

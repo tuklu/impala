@@ -88,11 +88,69 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             }
         }
 
+        if app.focused_block == FocusedBlock::CredentialUpdatePrompt {
+            if let Some(net) = &app.credential_update_network {
+                render_credential_update_prompt(frame, &net.name);
+            }
+        }
+
         // Notifications
         for (index, notification) in app.notifications.iter().enumerate() {
             notification.render(index, frame);
         }
     }
+}
+
+fn render_credential_update_prompt(frame: &mut Frame, network_name: &str) {
+    let area = frame.area();
+
+    let popup_width = 60u16.min(area.width.saturating_sub(4));
+    let popup_height = 5u16;
+
+    let vertical = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Fill(1),
+            Constraint::Length(popup_height),
+            Constraint::Fill(1),
+        ])
+        .split(area);
+
+    let horizontal = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Fill(1),
+            Constraint::Length(popup_width),
+            Constraint::Fill(1),
+        ])
+        .split(vertical[1]);
+
+    let popup_area = horizontal[1];
+
+    let truncated_name = if network_name.len() > (popup_width as usize).saturating_sub(4) {
+        format!("{}...", &network_name[..(popup_width as usize).saturating_sub(7)])
+    } else {
+        network_name.to_string()
+    };
+
+    let text = Text::from(vec![
+        Line::from(""),
+        Line::from(truncated_name).centered().yellow(),
+        Line::from("credentials may have changed").centered(),
+    ]);
+
+    frame.render_widget(Clear, popup_area);
+    frame.render_widget(
+        Paragraph::new(text).block(
+            Block::default()
+                .title(" Update Credentials? ")
+                .title_style(Style::default().bold().fg(Color::Yellow))
+                .borders(Borders::ALL)
+                .border_type(BorderType::Thick)
+                .border_style(Style::default().fg(Color::Yellow)),
+        ),
+        popup_area,
+    );
 }
 
 fn render_captive_portal_prompt(frame: &mut Frame, url: &str) {

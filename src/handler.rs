@@ -220,6 +220,29 @@ pub async fn handle_key_events(
         return Ok(());
     }
 
+    if app.focused_block == FocusedBlock::CredentialUpdatePrompt {
+        match key_event.code {
+            KeyCode::Enter | KeyCode::Char('y') => {
+                if let Some(net) = app.credential_update_network.take() {
+                    let s = sender.clone();
+                    tokio::spawn(async move {
+                        if let Some(known) = &net.known_network {
+                            let _ = known.forget(s.clone()).await;
+                        }
+                        let _ = net.connect(s).await;
+                    });
+                }
+                app.focused_block = FocusedBlock::KnownNetworks;
+            }
+            KeyCode::Esc | KeyCode::Char('n') => {
+                app.credential_update_network = None;
+                app.focused_block = FocusedBlock::KnownNetworks;
+            }
+            _ => {}
+        }
+        return Ok(());
+    }
+
     if app.reset.enable {
         match key_event.code {
             KeyCode::Char('q') => {

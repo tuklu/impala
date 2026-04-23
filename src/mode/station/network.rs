@@ -179,6 +179,11 @@ impl Network {
                     ConnectError::Aborted => {
                         Notification::send(e.to_string(), NotificationLevel::Info, &sender)?;
                     }
+                    ConnectError::Failed | ConnectError::NotConfigured | ConnectError::NotSupported
+                        if self.known_network.is_some() =>
+                    {
+                        let _ = sender.send(Event::CredentialFailed(self.name.clone()));
+                    }
                     _ => {
                         Notification::send(e.to_string(), NotificationLevel::Error, &sender)?;
                     }
